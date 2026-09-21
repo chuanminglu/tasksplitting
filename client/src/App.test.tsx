@@ -342,3 +342,23 @@ describe('LoginForm remembered username (T-UI-07)', () => {
     expect((screen.getByPlaceholderText('密码') as HTMLInputElement).value).toBe('');
   });
 });
+
+describe('logout confirmation (T-UI-08)', () => {
+  it('keeps the logged-in board when the user cancels the confirm', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { container } = await renderBoard([]);
+    fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
+    expect(confirmSpy).toHaveBeenCalledWith('确定要退出登录吗？');
+    expect(container.querySelector('.todo-list')).not.toBeNull();
+    expect(screen.queryByPlaceholderText('用户名')).toBeNull();
+  });
+
+  it('logs out (clearing the token) when the user confirms', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { container } = await renderBoard([]);
+    fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
+    expect(confirmSpy).toHaveBeenCalledWith('确定要退出登录吗？');
+    expect(container.querySelector('.todo-list')).toBeNull();
+    expect(screen.getByPlaceholderText('用户名')).toBeDefined();
+  });
+});
