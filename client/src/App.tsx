@@ -177,7 +177,7 @@ function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void })
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="添加一个任务" />
         <button type="submit">添加</button>
       </form>
-      <button type="button" className="logout-button" onClick={onLogout}>退出登录</button>
+      <button type="button" className="logout-button" onClick={() => { if (window.confirm('确定要退出登录吗？')) { onLogout(); } }}>退出登录</button>
       <div className="todo-filters" role="group" aria-label="按完成状态筛选">
         {TODOS_FILTERS.map(({ key, label }) => (
           <button key={key} type="button" className={`todo-filter${filter === key ? ' active' : ''}`} aria-pressed={filter === key} onClick={() => setFilter(key)}>
