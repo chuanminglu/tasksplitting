@@ -198,6 +198,30 @@ class AuthIntegrationTest {
         assertFalse(token.isBlank());
     }
 
+    @Test
+    void loginWithEmptyUsernameReturnsUserNotFoundNot500() throws Exception {
+        MvcResult result = mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"\",\"password\":\"correct-password\"}"))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+
+        assertEquals("USER_NOT_FOUND", objectMapper.readTree(result.getResponse().getContentAsString())
+            .path("error").path("code").asText());
+    }
+
+    @Test
+    void loginWithMissingUsernameFieldReturnsUserNotFoundNot500() throws Exception {
+        MvcResult result = mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"password\":\"correct-password\"}"))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+
+        assertEquals("USER_NOT_FOUND", objectMapper.readTree(result.getResponse().getContentAsString())
+            .path("error").path("code").asText());
+    }
+
     private String createUser(String prefix) {
         String username = prefix + "-" + System.nanoTime();
         users.create(username, new BCryptPasswordEncoder().encode("correct-password"));
