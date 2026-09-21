@@ -323,3 +323,22 @@ describe('TodoBoard stats (T-UI-06)', () => {
     expect(container.querySelector('.todo-stats')?.textContent).toBe('共2项，已完成1项');
   });
 });
+
+describe('LoginForm remembered username (T-UI-07)', () => {
+  it('stores the submitted username in localStorage after a successful login', async () => {
+    await renderBoard([]);
+    expect(window.localStorage.getItem('tasksplitting-remembered-username')).toBe('alice');
+  });
+
+  it('prefills the username input from localStorage on remount', () => {
+    window.localStorage.setItem('tasksplitting-remembered-username', 'bob');
+    render(<App />);
+    expect((screen.getByPlaceholderText('用户名') as HTMLInputElement).value).toBe('bob');
+  });
+
+  it('never prefills the password input', () => {
+    window.localStorage.setItem('tasksplitting-remembered-username', 'carol');
+    render(<App />);
+    expect((screen.getByPlaceholderText('密码') as HTMLInputElement).value).toBe('');
+  });
+});

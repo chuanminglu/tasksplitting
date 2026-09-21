@@ -35,6 +35,7 @@ const TODOS_FILTERS: Array<{ key: TodosFilter; label: string }> = [
 type Theme = 'light' | 'dark';
 
 const THEME_STORAGE_KEY = 'tasksplitting-theme';
+const REMEMBERED_USERNAME_KEY = 'tasksplitting-remembered-username';
 
 function readStoredTheme(): Theme {
   return window.localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
@@ -69,7 +70,7 @@ export default function App() {
 }
 
 function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(() => window.localStorage.getItem(REMEMBERED_USERNAME_KEY) ?? '');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -88,6 +89,9 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
       });
       if (response.ok) {
         const data = (await response.json()) as { token: string };
+        if (username) {
+          window.localStorage.setItem(REMEMBERED_USERNAME_KEY, username);
+        }
         onLogin(data.token);
       } else {
         const data = (await response.json().catch(() => null)) as { error?: { code?: string } } | null;
