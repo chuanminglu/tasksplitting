@@ -180,3 +180,31 @@ describe('TodoBoard relative time (T-UI-02)', () => {
     expect(formatRelativeTime('not-a-date', now)).toBe('not-a-date');
   });
 });
+
+describe('LoginForm password toggle (T-UI-03)', () => {
+  it('defaults the password input to type="password"', () => {
+    render(<App />);
+    expect(screen.getByPlaceholderText('密码').getAttribute('type')).toBe('password');
+  });
+
+  it('switches the password input to type="text" when the toggle is clicked', async () => {
+    render(<App />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '显示' }));
+    });
+    expect(screen.getByPlaceholderText('密码').getAttribute('type')).toBe('text');
+    expect(screen.getByRole('button', { name: '隐藏' })).toBeDefined();
+  });
+
+  it('switches back to type="password" on a second click', async () => {
+    render(<App />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '显示' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '隐藏' }));
+    });
+    expect(screen.getByPlaceholderText('密码').getAttribute('type')).toBe('password');
+    expect(screen.getByRole('button', { name: '显示' })).toBeDefined();
+  });
+});
