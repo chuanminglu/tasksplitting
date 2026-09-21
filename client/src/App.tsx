@@ -6,7 +6,7 @@ export default function App() {
   const [token, setToken] = useState<string | null>(null);
 
   if (!token) return <LoginForm onLogin={setToken} />;
-  return <TodoBoard onLogout={() => setToken(null)} />;
+  return <TodoBoard token={token} onLogout={() => setToken(null)} />;
 }
 
 function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
@@ -60,26 +60,33 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   );
 }
 
-function TodoBoard({ onLogout }: { onLogout: () => void }) {
+function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const authHeaders = { Authorization: `Bearer ${token}` };
+
   useEffect(() => {
-    fetch('/api/todos')
-      .then((response) => response.json() as Promise<Todo[]>)
-      .then(setTodos)
+    fetch('/api/todos', { headers: authHeaders })
+      .then((response) => {
+        if (response.status === 401) { onLogout(); return [] as Todo[]; }
+        return response.json() as Promise<Todo[]>;
+      })
+      .then((data) => { if (Array.isArray(data)) setTodos(data); })
       .finally(() => setLoading(false));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   async function addTodo(event: FormEvent) {
     event.preventDefault();
     if (!title.trim()) return;
     const response = await fetch('/api/todos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ title }),
     });
+    if (response.status === 401) { onLogout(); return; }
     if (response.ok) {
       const todo = (await response.json()) as Todo;
       setTodos((current) => [todo, ...current]);

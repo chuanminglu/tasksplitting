@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
-    "app.feature.login-auth-enabled=true",
     "spring.datasource.url=jdbc:sqlite:target/test-login-event.db"
 })
 @AutoConfigureMockMvc

@@ -2,8 +2,10 @@ package com.tasksplitting.api;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
 @Repository
 public class SessionRepository {
@@ -23,4 +25,24 @@ public class SessionRepository {
             "INSERT INTO \"Session\" (token, userId, expiresAt) VALUES (?, ?, ?)",
             token, userId, expiresAt.format(SQL_DATE_TIME));
     }
+
+    /**
+     * Look up a session by its opaque token.
+     *
+     * @param token the bearer token from the Authorization header
+     * @return the stored token and its expiry, or empty if not found
+     */
+    public Optional<StoredSession> findByToken(String token) {
+        return jdbcTemplate.query(
+            "SELECT token, userId, expiresAt FROM \"Session\" WHERE token = ?",
+            (rs, rowNum) -> new StoredSession(
+                rs.getString("token"),
+                rs.getInt("userId"),
+                rs.getTimestamp("expiresAt").toLocalDateTime()),
+            token
+        ).stream().findFirst();
+    }
+
+    /** A session row read from the database. */
+    public record StoredSession(String token, int userId, LocalDateTime expiresAt) {}
 }

@@ -11,6 +11,3 @@ spring:
   sql:
     init:
       mode: always
-app:
-  feature:
-    login-auth-enabled: false

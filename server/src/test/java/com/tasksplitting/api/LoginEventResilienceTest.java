@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
  * repository does not leak into the other event tests.
  */
 @SpringBootTest(properties = {
-    "app.feature.login-auth-enabled=true",
     "spring.datasource.url=jdbc:sqlite:target/test-login-event-resilience.db"
 })
 @AutoConfigureMockMvc
