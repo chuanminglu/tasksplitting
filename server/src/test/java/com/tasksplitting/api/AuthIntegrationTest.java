@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -175,6 +176,26 @@ class AuthIntegrationTest {
         assertEquals(0, failedAttempts(username));
         postLogin(username, "wrong-password").andExpect(status().isUnauthorized());
         assertEquals(1, failedAttempts(username));
+    }
+
+    @Test
+    void healthEndpointIsReachableWithoutAuthorization() throws Exception {
+        mvc.perform(get("/api/health"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void loginEndpointIsReachableWithoutAuthorization() throws Exception {
+        String username = createUser("public-login");
+
+        MvcResult result = mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + username + "\",\"password\":\"correct-password\"}"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String token = objectMapper.readTree(result.getResponse().getContentAsString()).path("token").asText();
+        assertFalse(token.isBlank());
     }
 
     private String createUser(String prefix) {
