@@ -222,6 +222,26 @@ class AuthIntegrationTest {
             .path("error").path("code").asText());
     }
 
+    @Test
+    void loginWithDifferentCaseUsernameTreatsAsDifferentAccount() throws Exception {
+        String fixed = "casecheck-" + System.nanoTime();
+        users.create(fixed, new BCryptPasswordEncoder().encode("correct-password"));
+
+        String suffix = fixed.substring("casecheck-".length());
+        assertUserNotFound("CaseCheck-" + suffix);
+        assertUserNotFound("CASECHECK-" + suffix);
+    }
+
+    private void assertUserNotFound(String username) throws Exception {
+        MvcResult result = mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + username + "\",\"password\":\"correct-password\"}"))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+        assertEquals("USER_NOT_FOUND", objectMapper.readTree(result.getResponse().getContentAsString())
+            .path("error").path("code").asText());
+    }
+
     private String createUser(String prefix) {
         String username = prefix + "-" + System.nanoTime();
         users.create(username, new BCryptPasswordEncoder().encode("correct-password"));
