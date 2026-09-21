@@ -38,4 +38,21 @@ describe('App', () => {
 
     expect(container.querySelector('.todo-list')).not.toBeNull();
   });
+
+  it.each([
+    ['USER_NOT_FOUND', '账号不存在'],
+    ['INVALID_PASSWORD', '密码错误'],
+  ])('shows the right message for %s', async (code, message) => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify({ error: { code, message: 'server message' } }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    )));
+
+    render(<App />);
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: '登录' }));
+    });
+
+    expect(screen.getByRole('alert').textContent).toBe(message);
+  });
 });

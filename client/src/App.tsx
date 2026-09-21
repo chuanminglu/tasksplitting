@@ -29,8 +29,12 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
         const data = (await response.json()) as { token: string };
         onLogin(data.token);
       } else {
-        const data = (await response.json().catch(() => null)) as { message?: string } | null;
-        setError(data?.message ?? `登录失败（${response.status}）`);
+        const data = (await response.json().catch(() => null)) as { error?: { code?: string } } | null;
+        const messages: Record<string, string> = {
+          USER_NOT_FOUND: '账号不存在',
+          INVALID_PASSWORD: '密码错误',
+        };
+        setError(data?.error?.code ? messages[data.error.code] ?? `登录失败（${response.status}）` : `登录失败（${response.status}）`);
       }
     } catch {
       setError('网络错误，请重试');
