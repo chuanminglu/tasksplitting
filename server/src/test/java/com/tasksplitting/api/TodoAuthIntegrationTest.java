@@ -174,6 +174,22 @@ class TodoAuthIntegrationTest {
     }
 
     @Test
+    void getTodosWithExpiresAtExactlyNowStillReturns200() throws Exception {
+        String username = "boundary-" + System.nanoTime();
+        users.create(username, encoder.encode("correct-password"));
+        String token = loginAndGetToken(username);
+
+        // Set expiresAt to exactly the current clock instant — isBefore is false, so valid.
+        String nowStr = LocalDateTime.now(clock).format(
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        jdbc.update("UPDATE \"Session\" SET expiresAt = ? WHERE token = ?", nowStr, token);
+
+        mvc.perform(get("/api/todos")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk());
+    }
+
+    @Test
     void getTodosWithUnknownTokenReturns401() throws Exception {
         mvc.perform(get("/api/todos")
                 .header("Authorization", "Bearer nonexistent-token"))
