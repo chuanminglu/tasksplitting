@@ -237,3 +237,49 @@ describe('App theme toggle (T-UI-04)', () => {
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 });
+
+describe('LoginForm submit loading disables inputs (T-UI-05)', () => {
+  it('disables the username and password inputs while a submit is in flight', async () => {
+    let resolveLogin!: (value: Response) => void;
+    const loginPromise = new Promise<Response>((resolve) => {
+      resolveLogin = resolve;
+    });
+    vi.stubGlobal('fetch', vi.fn((input: string | URL | Request) => {
+      if (String(input).includes('/api/auth/login')) {
+        return loginPromise;
+      }
+      return Promise.resolve(new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }));
+    render(<App />);
+    fireEvent.change(screen.getByPlaceholderText('用户名'), { target: { value: 'alice' } });
+    fireEvent.change(screen.getByPlaceholderText('密码'), { target: { value: 'secret' } });
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: '登录' }));
+    });
+    expect(screen.getByPlaceholderText('用户名').getAttribute('disabled') !== null).toBe(true);
+    expect(screen.getByPlaceholderText('密码').getAttribute('disabled') !== null).toBe(true);
+    await act(async () => {
+      resolveLogin(new Response(JSON.stringify({ token: 'test-token' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    });
+  });
+
+  it('restores the inputs to enabled after a failed submit', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      if (String(input).includes('/api/auth/login')) {
+        return new Response(JSON.stringify({ error: { code: 'INVALID_PASSWORD' } }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    fireEvent.change(screen.getByPlaceholderText('用户名'), { target: { value: 'alice' } });
+    fireEvent.change(screen.getByPlaceholderText('密码'), { target: { value: 'wrong' } });
+    expect(screen.getByPlaceholderText('用户名').getAttribute('disabled')).toBeNull();
+    expect(screen.getByPlaceholderText('密码').getAttribute('disabled')).toBeNull();
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: '登录' }));
+    });
+    expect(screen.getByPlaceholderText('用户名').getAttribute('disabled')).toBeNull();
+    expect(screen.getByPlaceholderText('密码').getAttribute('disabled')).toBeNull();
+  });
+});
