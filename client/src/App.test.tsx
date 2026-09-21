@@ -283,3 +283,43 @@ describe('LoginForm submit loading disables inputs (T-UI-05)', () => {
     expect(screen.getByPlaceholderText('密码').getAttribute('disabled')).toBeNull();
   });
 });
+
+describe('TodoBoard stats (T-UI-06)', () => {
+  it('shows total and completed counts for the full todo set', async () => {
+    const { container } = await renderBoard([
+      { id: 1, title: '已完成A', completed: true, createdAt: '2026-01-01T10:00:00Z' },
+      { id: 2, title: '未完成B', completed: false, createdAt: '2026-01-01T10:00:00Z' },
+      { id: 3, title: '已完成C', completed: true, createdAt: '2026-01-01T10:00:00Z' },
+    ]);
+    expect(container.querySelector('.todo-stats')?.textContent).toBe('共3项，已完成2项');
+  });
+
+  it('reflects the unfiltered total even when a filter is active', async () => {
+    const { container } = await renderBoard([
+      { id: 1, title: '已完成A', completed: true, createdAt: '2026-01-01T10:00:00Z' },
+      { id: 2, title: '未完成B', completed: false, createdAt: '2026-01-01T10:00:00Z' },
+    ]);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '未完成' }));
+    });
+    expect(container.querySelector('.todo-stats')?.textContent).toBe('共2项，已完成1项');
+  });
+
+  it('updates the completed count after a new todo is added', async () => {
+    const { container, fetchMock } = await renderBoard([
+      { id: 1, title: '未完成A', completed: false, createdAt: '2026-01-01T10:00:00Z' },
+    ]);
+    expect(container.querySelector('.todo-stats')?.textContent).toBe('共1项，已完成0项');
+    fetchMock.mockImplementationOnce(async (input: string | URL | Request) => {
+      if (String(input).includes('/api/todos')) {
+        return new Response(JSON.stringify({ id: 2, title: '新任务', completed: true, createdAt: '2026-01-02T10:00:00Z' }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    fireEvent.change(screen.getByPlaceholderText('添加一个任务'), { target: { value: '新任务' } });
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: '添加' }));
+    });
+    expect(container.querySelector('.todo-stats')?.textContent).toBe('共2项，已完成1项');
+  });
+});

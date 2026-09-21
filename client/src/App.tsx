@@ -181,6 +181,7 @@ function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void })
           </button>
         ))}
       </div>
+      <p className="todo-stats" aria-live="polite">共{todos.length}项，已完成{todos.filter((todo) => todo.completed).length}项</p>
       <section className="todo-list" aria-live="polite">
         {loading ? <p className="muted">正在加载...</p> : null}
         {!loading && visibleTodos.length === 0 ? <p className="muted">还没有任务，添加第一项吧。</p> : null}
