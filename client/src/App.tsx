@@ -32,11 +32,40 @@ const TODOS_FILTERS: Array<{ key: TodosFilter; label: string }> = [
   { key: 'completed', label: '已完成' },
 ];
 
+type Theme = 'light' | 'dark';
+
+const THEME_STORAGE_KEY = 'tasksplitting-theme';
+
+function readStoredTheme(): Theme {
+  return window.localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
+}
+
 export default function App() {
   const [token, setToken] = useState<string | null>(null);
+  const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
-  if (!token) return <LoginForm onLogin={setToken} />;
-  return <TodoBoard token={token} onLogout={() => setToken(null)} />;
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
+  return (
+    <>
+      <button
+        type="button"
+        className="theme-toggle"
+        aria-label="切换主题"
+        onClick={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))}
+      >
+        {theme === 'light' ? '深色' : '浅色'}
+      </button>
+      {!token ? (
+        <LoginForm onLogin={setToken} />
+      ) : (
+        <TodoBoard token={token} onLogout={() => setToken(null)} />
+      )}
+    </>
+  );
 }
 
 function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {

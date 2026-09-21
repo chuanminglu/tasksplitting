@@ -1,12 +1,14 @@
 import { act } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import App, { formatRelativeTime } from './App';
 
 type TestTodo = { id: number; title: string; completed: boolean; createdAt: string };
 
 afterEach(() => {
   cleanup();
+  delete document.documentElement.dataset.theme;
+  window.localStorage.clear();
   vi.restoreAllMocks();
 });
 
@@ -206,5 +208,32 @@ describe('LoginForm password toggle (T-UI-03)', () => {
     });
     expect(screen.getByPlaceholderText('密码').getAttribute('type')).toBe('password');
     expect(screen.getByRole('button', { name: '显示' })).toBeDefined();
+  });
+});
+
+describe('App theme toggle (T-UI-04)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('defaults to the light theme', () => {
+    render(<App />);
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(window.localStorage.getItem('tasksplitting-theme')).toBe('light');
+  });
+
+  it('switches to dark and persists the choice when the toggle is clicked', async () => {
+    render(<App />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '切换主题' }));
+    });
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(window.localStorage.getItem('tasksplitting-theme')).toBe('dark');
+  });
+
+  it('restores the stored theme on remount', async () => {
+    window.localStorage.setItem('tasksplitting-theme', 'dark');
+    render(<App />);
+    expect(document.documentElement.dataset.theme).toBe('dark');
   });
 });
