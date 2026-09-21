@@ -7,6 +7,8 @@ h1 { margin: 18px 0 8px; font-size: clamp(2rem, 6vw, 4rem); line-height: 1.05; }
 .intro { color: #5f6d68; margin-bottom: 36px; }
 .todo-form { display: flex; gap: 10px; }
 .login-form { display: flex; flex-direction: column; gap: 10px; }
+.password-field { display: flex; gap: 8px; align-items: stretch; }
+.password-toggle { padding: 0 16px; background: #5f6d68; }
 .logout-button { margin-top: 12px; background: #8a5a2c; }
 input { flex: 1; min-width: 0; border: 1px solid #ccd8d1; border-radius: 8px; padding: 13px 14px; font: inherit; background: white; }
 button { border: 0; border-radius: 8px; padding: 0 20px; color: white; background: #236b4d; font: inherit; font-weight: 700; cursor: pointer; }

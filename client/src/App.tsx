@@ -43,6 +43,7 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -81,7 +82,10 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
       <p className="intro">输入用户名和密码，进入工作台。</p>
       <form onSubmit={submit} className="login-form">
         <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名" autoComplete="username" />
-        <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" />
+        <div className="password-field">
+          <input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" />
+          <button type="button" className="password-toggle" onClick={() => setShowPassword((current) => !current)}>{showPassword ? '隐藏' : '显示'}</button>
+        </div>
         <label><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /> 记住我</label>
         <button type="submit" disabled={submitting}>{submitting ? '登录中…' : '登录'}</button>
       </form>
