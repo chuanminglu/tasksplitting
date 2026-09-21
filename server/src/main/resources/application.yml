@@ -4,7 +4,7 @@ spring:
   application:
     name: tasksplitting-api
   datasource:
-    url: jdbc:sqlite:server/prisma/dev.db
+    url: jdbc:sqlite:${DB_PATH:server/prisma/dev.db}
     driver-class-name: org.sqlite.JDBC
     hikari:
       maximum-pool-size: 5
