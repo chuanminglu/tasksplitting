@@ -3,6 +3,58 @@ import { FormEvent, useEffect, useState } from 'react';
 type Todo = { id: number; title: string; completed: boolean };
 
 export default function App() {
+  const [token, setToken] = useState<string | null>(null);
+
+  if (!token) return <LoginForm onLogin={setToken} />;
+  return <TodoBoard onLogout={() => setToken(null)} />;
+}
+
+function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      if (response.ok) {
+        const data = (await response.json()) as { token: string };
+        onLogin(data.token);
+      } else {
+        const data = (await response.json().catch(() => null)) as { message?: string } | null;
+        setError(data?.message ?? `登录失败（${response.status}）`);
+      }
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="shell">
+      <p className="eyebrow">TASK SPLITTING</p>
+      <h1>登录</h1>
+      <p className="intro">输入用户名和密码，进入工作台。</p>
+      <form onSubmit={submit} className="login-form">
+        <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名" autoComplete="username" />
+        <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" />
+        <button type="submit" disabled={submitting}>{submitting ? '登录中…' : '登录'}</button>
+      </form>
+      {error ? <p className="muted" role="alert">{error}</p> : null}
+    </main>
+  );
+}
+
+function TodoBoard({ onLogout }: { onLogout: () => void }) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
@@ -38,6 +90,7 @@ export default function App() {
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="添加一个任务" />
         <button type="submit">添加</button>
       </form>
+      <button type="button" className="logout-button" onClick={onLogout}>退出登录</button>
       <section className="todo-list" aria-live="polite">
         {loading ? <p className="muted">正在加载...</p> : null}
         {!loading && todos.length === 0 ? <p className="muted">还没有任务，添加第一项吧。</p> : null}
