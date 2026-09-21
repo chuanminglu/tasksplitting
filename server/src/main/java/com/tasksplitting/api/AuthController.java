@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -30,6 +31,12 @@ public class AuthController {
 
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<Map<String, Object>> handleAuthException(AuthException exception) {
+        if ("ACCOUNT_LOCKED".equals(exception.getCode())) {
+            LocalDateTime lockedUntil = exception.getLockedUntil();
+            return ResponseEntity.status(423).body(Map.of(
+                "error", "ACCOUNT_LOCKED",
+                "lockedUntil", lockedUntil.toString()));
+        }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
             "error", Map.of("code", exception.getCode(), "message", exception.getMessage())));
     }
