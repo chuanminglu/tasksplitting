@@ -1,8 +1,30 @@
 import { FormEvent, useEffect, useState } from 'react';
 
-type Todo = { id: number; title: string; completed: boolean };
+type Todo = { id: number; title: string; completed: boolean; createdAt: string };
 
 type TodosFilter = 'all' | 'active' | 'completed';
+
+export function formatRelativeTime(createdAt: string, now: Date = new Date()): string {
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) {
+    return createdAt;
+  }
+  const diffMinutes = Math.max(0, Math.floor((now.getTime() - created.getTime()) / 60000));
+  if (diffMinutes < 1) {
+    return '刚刚';
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes}分钟前`;
+  }
+  if (diffMinutes < 24 * 60) {
+    const hours = Math.floor(diffMinutes / 60);
+    return `${hours}小时前`;
+  }
+  const year = created.getFullYear();
+  const month = String(created.getMonth() + 1).padStart(2, '0');
+  const day = String(created.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 const TODOS_FILTERS: Array<{ key: TodosFilter; label: string }> = [
   { key: 'all', label: '全部' },
@@ -129,7 +151,7 @@ function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void })
       <section className="todo-list" aria-live="polite">
         {loading ? <p className="muted">正在加载...</p> : null}
         {!loading && visibleTodos.length === 0 ? <p className="muted">还没有任务，添加第一项吧。</p> : null}
-        {visibleTodos.map((todo) => <div className="todo" key={todo.id}><span>{todo.title}</span><small>待处理</small></div>)}
+        {visibleTodos.map((todo) => <div className="todo" key={todo.id}><span>{todo.title}</span><small>{formatRelativeTime(todo.createdAt)}</small></div>)}
       </section>
     </main>
   );

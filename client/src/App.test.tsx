@@ -1,9 +1,9 @@
 import { act } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import App from './App';
+import App, { formatRelativeTime } from './App';
 
-type TestTodo = { id: number; title: string; completed: boolean };
+type TestTodo = { id: number; title: string; completed: boolean; createdAt: string };
 
 afterEach(() => {
   cleanup();
@@ -108,9 +108,9 @@ describe('App', () => {
 
 describe('TodoBoard completion-status filter (T-UI-01)', () => {
   const sampleTodos: TestTodo[] = [
-    { id: 1, title: '写周报', completed: false },
-    { id: 2, title: '评审 PR', completed: true },
-    { id: 3, title: '回复消息', completed: false },
+    { id: 1, title: '写周报', completed: false, createdAt: '2026-01-01T10:00:00Z' },
+    { id: 2, title: '评审 PR', completed: true, createdAt: '2026-01-01T09:00:00Z' },
+    { id: 3, title: '回复消息', completed: false, createdAt: '2026-01-01T08:00:00Z' },
   ];
 
   it('shows all todos by default', async () => {
@@ -152,11 +152,31 @@ describe('TodoBoard completion-status filter (T-UI-01)', () => {
   });
 
   it('shows the empty state when the active filter leaves no visible todos', async () => {
-    const { container } = await renderBoard([{ id: 1, title: '唯一已完成', completed: true }]);
+    const { container } = await renderBoard([{ id: 1, title: '唯一已完成', completed: true, createdAt: '2026-01-01T10:00:00Z' }]);
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '未完成' }));
     });
     expect(container.querySelector('.todo')).toBeNull();
     expect(screen.getByText('还没有任务，添加第一项吧。')).toBeDefined();
+  });
+});
+
+describe('TodoBoard relative time (T-UI-02)', () => {
+  const now = new Date('2026-01-01T12:00:00Z');
+
+  it('labels a just-created todo as 刚刚', async () => {
+    const justCreated = new Date().toISOString();
+    const { container } = await renderBoard([{ id: 1, title: '新任务', completed: false, createdAt: justCreated }]);
+    expect(container.querySelector('.todo small')?.textContent).toBe('刚刚');
+  });
+
+  it('formats minutes/hours/date buckets correctly', () => {
+    expect(formatRelativeTime('2026-01-01T11:55:00Z', now)).toBe('5分钟前');
+    expect(formatRelativeTime('2026-01-01T09:00:00Z', now)).toBe('3小时前');
+    expect(formatRelativeTime('2025-12-31T12:00:00Z', now)).toBe('2025-12-31');
+  });
+
+  it('treats an unknown time format as its raw value', () => {
+    expect(formatRelativeTime('not-a-date', now)).toBe('not-a-date');
   });
 });
