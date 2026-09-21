@@ -14,9 +14,8 @@
 | 文件 | 改动类型 | 说明 |
 |---|---|---|
 | `.github/workflows/ci.yml` | 新增 | 两个并行 job：`server-test`（Java 17/temurin + `mvn test`）、`client-typecheck`（Node 20 + `npm ci && npm run typecheck`） |
-| `package-lock.json` | 新增 | 仓库此前无提交 lockfile；`npm ci` 依赖它才能工作，故生成并提交（见三、六） |
 
-未改：server / client 源码、`pom.xml`、`package.json`（根级 typecheck 脚本已存在，直接复用）。
+未改：server / client 源码、`pom.xml`、`package.json`（根级 typecheck 脚本已存在，直接复用）。`package-lock.json` 仓库中已存在并被 CI 使用，本任务未改动它。
 
 ## 三、实际技术选型是否与说明一致
 
@@ -53,11 +52,10 @@ $ npm run typecheck          # 仓库根，等价 npm run typecheck --workspace 
 - **不要以"CI 必须跑绿"作为验收条件**：✅ 验收止步于本地两条命令跑通 + YAML 语法正确；未把"CI 跑绿"列为验收前提。
 - **不要顺带引入部署/发布 workflow**：✅ 仅一个测试验证 workflow，无部署/发布。
 - **偏离说明（如实标注，非"不要做的事"违规）**：
-  1. client job 由规格假设的 `cd client && npm ci && npm run typecheck` 改为根级 `npm ci && npm run typecheck`——因 monorepo 结构所必需，目的（覆盖 client typecheck）不变。
-  2. 新增并提交 `package-lock.json`——`npm ci` 的硬前提，仓库此前缺失。
+  1. client job 由规格假设的 `cd client && npm ci && npm run typecheck` 改为根级 `npm ci && npm run typecheck`——因 npm workspaces monorepo 结构所必需（client 是子 workspace，无独立 lockfile），目的（覆盖 client typecheck）不变。
 
 ## 七、交付物与后续事项
 
-- 分支：`t-cfg-01-ci-workflow`；提交：`.github/workflows/ci.yml` + `package-lock.json` + 本报告
+- 分支：`t-cfg-01-ci-workflow`；提交：`.github/workflows/ci.yml` + 本报告
 - **CI 是否已在 GitHub 实际跑绿：尚未。** 本任务只做到本地两条命令验证 + YAML 语法正确。建议本 PR 合并后，到 GitHub Actions 页面确认 `CI` workflow 实际跑绿（这是唯一需要人工补充验证的任务，见规格备注）。
 - 待办：阶段 3 下一任务 **T-CFG-02**。
