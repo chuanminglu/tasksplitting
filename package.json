@@ -1,13 +1,11 @@
 {
   "name": "tasksplitting",
   "private": true,
-  "workspaces": ["server", "client"],
+  "workspaces": ["client"],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace server\" \"npm run dev --workspace client\"",
-    "build": "npm run build --workspace server && npm run build --workspace client",
-    "db:push": "npm run db:push --workspace server",
-    "db:studio": "npm run db:studio --workspace server",
-    "typecheck": "npm run typecheck --workspace server && npm run typecheck --workspace client"
+    "dev": "concurrently \"mvn -f server/pom.xml spring-boot:run\" \"npm run dev --workspace client\"",
+    "build": "mvn -f server/pom.xml package -DskipTests && npm run build --workspace client",
+    "typecheck": "npm run typecheck --workspace client"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
