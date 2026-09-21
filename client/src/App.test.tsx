@@ -39,6 +39,29 @@ describe('App', () => {
     expect(container.querySelector('.todo-list')).not.toBeNull();
   });
 
+  it('leaves remember me unchecked and sends true when selected', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const payload = String(input).includes('/api/auth/login') ? { token: 'test-token' } : [];
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<App />);
+    const rememberMe = screen.getByLabelText('记住我') as HTMLInputElement;
+    expect(rememberMe.checked).toBe(false);
+    fireEvent.click(rememberMe);
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: '登录' }));
+    });
+
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(request).toBeDefined();
+    expect(JSON.parse(String(request?.body)).rememberMe).toBe(true);
+  });
+
   it.each([
     ['USER_NOT_FOUND', '账号不存在'],
     ['INVALID_PASSWORD', '密码错误'],

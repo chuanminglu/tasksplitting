@@ -25,7 +25,8 @@ public class AuthController {
         if (!loginAuthEnabled) return ResponseEntity.notFound().build();
         String token = authService.login(
             request == null ? null : request.username(),
-            request == null ? null : request.password());
+            request == null ? null : request.password(),
+            request != null && request.rememberMe());
         return ResponseEntity.ok(new LoginResponse(token));
     }
 
