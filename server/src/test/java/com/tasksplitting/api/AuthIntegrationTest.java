@@ -167,6 +167,23 @@ class AuthIntegrationTest {
     }
 
     @Test
+    void correctPasswordWhenLockedUntilExactlyNowLogsInAndClearsFailures() throws Exception {
+        String username = createUser("boundary");
+        // Set lockedUntil to exactly the current clock instant — isAfter is false, so not locked.
+        // Seed failedLoginAttempts to a locked value so the post-login reset is observable.
+        String nowStr = clock.now().format(
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        jdbc.update("UPDATE \"User\" SET failedLoginAttempts = 5, lockedUntil = ? WHERE username = ?",
+            nowStr, username);
+
+        postLogin(username, "correct-password")
+            .andExpect(status().isOk());
+
+        assertEquals(0, failedAttempts(username));
+        assertEquals(null, lockedUntil(username));
+    }
+
+    @Test
     void successfulLoginResetsConsecutiveFailuresBeforeNextFailure() throws Exception {
         String username = createUser("resets");
         postLogin(username, "wrong-password").andExpect(status().isUnauthorized());
