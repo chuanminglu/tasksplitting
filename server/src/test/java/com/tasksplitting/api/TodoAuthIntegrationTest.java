@@ -22,10 +22,12 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.concurrent.atomic.AtomicReference;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -127,6 +129,22 @@ class TodoAuthIntegrationTest {
         mvc.perform(get("/api/todos")
                 .header("Authorization", "Bearer nonexistent-token"))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getTodosWithWrongSchemeReturns401() throws Exception {
+        mvc.perform(get("/api/todos")
+                .header("Authorization", "Basic dXNlcjpwYXNz"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code", equalTo("UNAUTHORIZED")));
+    }
+
+    @Test
+    void getTodosWithEmptyBearerReturns401() throws Exception {
+        mvc.perform(get("/api/todos")
+                .header("Authorization", "Bearer "))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code", equalTo("UNAUTHORIZED")));
     }
 
     @TestConfiguration(proxyBeanMethods = false)
