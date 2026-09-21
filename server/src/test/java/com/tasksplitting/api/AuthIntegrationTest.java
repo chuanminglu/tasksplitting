@@ -14,6 +14,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -52,5 +53,32 @@ class AuthIntegrationTest {
         LocalDateTime expected = LocalDateTime.now().plusHours(2);
         assertTrue(Duration.between(expiresAt.toLocalDateTime(), expected).abs().toMinutes() <= 2,
             "expiresAt should be ~ issue time + 2h, got " + expiresAt + " expected ~ " + expected);
+    }
+
+    @Test
+    void loginWithUnknownUsernameReturnsUserNotFoundCode() throws Exception {
+        MvcResult result = mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"missing-" + System.nanoTime() + "\",\"password\":\"password\"}"))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+
+        assertEquals("USER_NOT_FOUND", objectMapper.readTree(result.getResponse().getContentAsString())
+            .path("error").path("code").asText());
+    }
+
+    @Test
+    void loginWithWrongPasswordReturnsInvalidPasswordCode() throws Exception {
+        String username = "bob-" + System.nanoTime();
+        users.create(username, new BCryptPasswordEncoder().encode("correct-password"));
+
+        MvcResult result = mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + username + "\",\"password\":\"wrong-password\"}"))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+
+        assertEquals("INVALID_PASSWORD", objectMapper.readTree(result.getResponse().getContentAsString())
+            .path("error").path("code").asText());
     }
 }

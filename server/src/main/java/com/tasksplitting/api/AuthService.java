@@ -24,9 +24,9 @@ public class AuthService {
 
     public String login(String username, String rawPassword) {
         User user = userRepository.findByUsername(username == null ? "" : username)
-            .orElseThrow(() -> new AuthException("login failed"));
+            .orElseThrow(() -> new AuthException("USER_NOT_FOUND", "账号不存在"));
         if (!passwordEncoder.matches(rawPassword == null ? "" : rawPassword, user.passwordHash())) {
-            throw new AuthException("login failed");
+            throw new AuthException("INVALID_PASSWORD", "密码错误");
         }
         String token = UUID.randomUUID().toString();
         LocalDateTime expiresAt = LocalDateTime.now(clock).plusHours(SESSION_VALIDITY_HOURS);

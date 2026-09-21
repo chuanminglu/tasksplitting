@@ -1,6 +1,13 @@
 package com.tasksplitting.api;
 
-/** Thrown for any login failure in this phase; error-code refinement lands in T00102. */
+/** Thrown when a login attempt fails with a client-visible authentication code. */
 public class AuthException extends RuntimeException {
-    public AuthException(String message) { super(message); }
+    private final String code;
+
+    public AuthException(String code, String message) {
+        super(message);
+        this.code = code;
+    }
+
+    public String getCode() { return code; }
 }

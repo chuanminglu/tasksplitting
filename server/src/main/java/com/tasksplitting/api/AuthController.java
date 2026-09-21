@@ -22,13 +22,15 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         if (!loginAuthEnabled) return ResponseEntity.notFound().build();
-        try {
-            String token = authService.login(
-                request == null ? null : request.username(),
-                request == null ? null : request.password());
-            return ResponseEntity.ok(new LoginResponse(token));
-        } catch (AuthException exception) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "login failed"));
-        }
+        String token = authService.login(
+            request == null ? null : request.username(),
+            request == null ? null : request.password());
+        return ResponseEntity.ok(new LoginResponse(token));
+    }
+
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthException(AuthException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+            "error", Map.of("code", exception.getCode(), "message", exception.getMessage())));
     }
 }
