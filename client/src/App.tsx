@@ -2,6 +2,14 @@ import { FormEvent, useEffect, useState } from 'react';
 
 type Todo = { id: number; title: string; completed: boolean };
 
+type TodosFilter = 'all' | 'active' | 'completed';
+
+const TODOS_FILTERS: Array<{ key: TodosFilter; label: string }> = [
+  { key: 'all', label: '全部' },
+  { key: 'active', label: '未完成' },
+  { key: 'completed', label: '已完成' },
+];
+
 export default function App() {
   const [token, setToken] = useState<string | null>(null);
 
@@ -64,6 +72,13 @@ function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void })
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<TodosFilter>('all');
+
+  const visibleTodos = todos.filter((todo) => {
+    if (filter === 'active') return todo.completed === false;
+    if (filter === 'completed') return todo.completed === true;
+    return true;
+  });
 
   const authHeaders = { Authorization: `Bearer ${token}` };
 
@@ -104,10 +119,17 @@ function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void })
         <button type="submit">添加</button>
       </form>
       <button type="button" className="logout-button" onClick={onLogout}>退出登录</button>
+      <div className="todo-filters" role="group" aria-label="按完成状态筛选">
+        {TODOS_FILTERS.map(({ key, label }) => (
+          <button key={key} type="button" className={`todo-filter${filter === key ? ' active' : ''}`} aria-pressed={filter === key} onClick={() => setFilter(key)}>
+            {label}
+          </button>
+        ))}
+      </div>
       <section className="todo-list" aria-live="polite">
         {loading ? <p className="muted">正在加载...</p> : null}
-        {!loading && todos.length === 0 ? <p className="muted">还没有任务，添加第一项吧。</p> : null}
-        {todos.map((todo) => <div className="todo" key={todo.id}><span>{todo.title}</span><small>待处理</small></div>)}
+        {!loading && visibleTodos.length === 0 ? <p className="muted">还没有任务，添加第一项吧。</p> : null}
+        {visibleTodos.map((todo) => <div className="todo" key={todo.id}><span>{todo.title}</span><small>待处理</small></div>)}
       </section>
     </main>
   );

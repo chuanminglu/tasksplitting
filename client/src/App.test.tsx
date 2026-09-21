@@ -3,10 +3,36 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import App from './App';
 
+type TestTodo = { id: number; title: string; completed: boolean };
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
+
+async function renderBoard(todos: TestTodo[]) {
+  const fetchMock = vi.fn(async (input: string | URL | Request) => {
+    const url = String(input);
+    const payload = url.includes('/api/auth/login') ? { token: 'test-token' } : todos;
+    return new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  const { container } = render(<App />);
+  fireEvent.change(screen.getByPlaceholderText('用户名'), { target: { value: 'alice' } });
+  fireEvent.change(screen.getByPlaceholderText('密码'), { target: { value: 'secret' } });
+  await act(async () => {
+    fireEvent.submit(screen.getByRole('button', { name: '登录' }));
+  });
+  return { container, fetchMock };
+}
+
+function todoTitles(container: HTMLElement): string[] {
+  return Array.from(container.querySelectorAll('.todo span')).map((el) => el.textContent);
+}
+
+function todosFetchCalls(fetchMock: ReturnType<typeof vi.fn>): number {
+  return fetchMock.mock.calls.filter((call) => String(call[0]).includes('/api/todos')).length;
+}
 
 describe('App', () => {
   it('shows the login form before login', () => {
@@ -77,5 +103,60 @@ describe('App', () => {
     });
 
     expect(screen.getByRole('alert').textContent).toBe(message);
+  });
+});
+
+describe('TodoBoard completion-status filter (T-UI-01)', () => {
+  const sampleTodos: TestTodo[] = [
+    { id: 1, title: '写周报', completed: false },
+    { id: 2, title: '评审 PR', completed: true },
+    { id: 3, title: '回复消息', completed: false },
+  ];
+
+  it('shows all todos by default', async () => {
+    const { container } = await renderBoard(sampleTodos);
+    expect(todoTitles(container)).toEqual(['写周报', '评审 PR', '回复消息']);
+    expect(screen.getByRole('button', { name: '全部' }).classList.contains('active')).toBe(true);
+  });
+
+  it('shows only incomplete todos when "未完成" is selected', async () => {
+    const { container } = await renderBoard(sampleTodos);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '未完成' }));
+    });
+    expect(todoTitles(container)).toEqual(['写周报', '回复消息']);
+  });
+
+  it('shows only completed todos when "已完成" is selected', async () => {
+    const { container } = await renderBoard(sampleTodos);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '已完成' }));
+    });
+    expect(todoTitles(container)).toEqual(['评审 PR']);
+  });
+
+  it('does not refetch /api/todos when switching filters', async () => {
+    const { container, fetchMock } = await renderBoard(sampleTodos);
+    const callsBefore = todosFetchCalls(fetchMock);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '未完成' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '已完成' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '全部' }));
+    });
+    expect(todoTitles(container)).toEqual(['写周报', '评审 PR', '回复消息']);
+    expect(todosFetchCalls(fetchMock)).toBe(callsBefore);
+  });
+
+  it('shows the empty state when the active filter leaves no visible todos', async () => {
+    const { container } = await renderBoard([{ id: 1, title: '唯一已完成', completed: true }]);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '未完成' }));
+    });
+    expect(container.querySelector('.todo')).toBeNull();
+    expect(screen.getByText('还没有任务，添加第一项吧。')).toBeDefined();
   });
 });
