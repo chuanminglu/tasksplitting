@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -106,6 +107,54 @@ class TodoAuthIntegrationTest {
 
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
         assertFalse(body.path("title").asText().isEmpty());
+    }
+
+    @Test
+    void getTodosReturnsLatestCreatedAtFirst() throws Exception {
+        String username = "order-" + System.nanoTime();
+        users.create(username, encoder.encode("correct-password"));
+        String token = loginAndGetToken(username);
+
+        createTodo(token, "A");
+        // SQLite CURRENT_TIMESTAMP has second-level precision; the test clock does not
+        // feed the Todo insert, so sleep long enough to guarantee a strictly later
+        // second for the next row.
+        Thread.sleep(1100);
+        createTodo(token, "B");
+        Thread.sleep(1100);
+        createTodo(token, "C");
+
+        MvcResult result = mvc.perform(get("/api/todos")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
+        // findAll is not user-scoped; other tests in this class may have inserted rows.
+        // Assert only the relative order: C before B before A (descending createdAt).
+        int idxC = findIndex(body, "C");
+        int idxB = findIndex(body, "B");
+        int idxA = findIndex(body, "A");
+        assertTrue(idxC >= 0 && idxB >= 0 && idxA >= 0, "expected C, B, A all present");
+        assertTrue(idxC < idxB && idxB < idxA,
+            "expected descending createdAt order C->B->A, got C@" + idxC + " B@" + idxB + " A@" + idxA);
+    }
+
+    private void createTodo(String token, String title) throws Exception {
+        mvc.perform(post("/api/todos")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"" + title + "\"}"))
+            .andExpect(status().isCreated());
+    }
+
+    private int findIndex(JsonNode body, String title) {
+        for (int i = 0; i < body.size(); i++) {
+            if (title.equals(body.get(i).path("title").asText())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Test
