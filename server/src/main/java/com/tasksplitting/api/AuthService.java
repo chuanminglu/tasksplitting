@@ -10,6 +10,7 @@ import java.util.UUID;
 public class AuthService {
     /** Single session validity tier in this phase; "remember me" differentiation is T00104. */
     public static final int SESSION_VALIDITY_HOURS = 2;
+    public static final int REMEMBER_ME_VALIDITY_DAYS = 7;
     public static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
     public static final int LOCKOUT_MINUTES = 15;
 
@@ -24,7 +25,7 @@ public class AuthService {
         this.clock = clock;
     }
 
-    public String login(String username, String rawPassword) {
+    public String login(String username, String rawPassword, boolean rememberMe) {
         User user = userRepository.findByUsername(username == null ? "" : username)
             .orElseThrow(() -> new AuthException("USER_NOT_FOUND", "账号不存在"));
         LocalDateTime now = LocalDateTime.now(clock);
@@ -45,7 +46,9 @@ public class AuthService {
             userRepository.resetLoginFailures(user.id());
         }
         String token = UUID.randomUUID().toString();
-        LocalDateTime expiresAt = now.plusHours(SESSION_VALIDITY_HOURS);
+        LocalDateTime expiresAt = rememberMe
+            ? now.plusDays(REMEMBER_ME_VALIDITY_DAYS)
+            : now.plusHours(SESSION_VALIDITY_HOURS);
         sessionRepository.create(token, user.id(), expiresAt);
         return token;
     }

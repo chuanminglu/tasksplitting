@@ -12,6 +12,7 @@ export default function App() {
 function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -23,7 +24,7 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, rememberMe }),
       });
       if (response.ok) {
         const data = (await response.json()) as { token: string };
@@ -51,6 +52,7 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
       <form onSubmit={submit} className="login-form">
         <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名" autoComplete="username" />
         <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" />
+        <label><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /> 记住我</label>
         <button type="submit" disabled={submitting}>{submitting ? '登录中…' : '登录'}</button>
       </form>
       {error ? <p className="muted" role="alert">{error}</p> : null}

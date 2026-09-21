@@ -74,6 +74,25 @@ class AuthIntegrationTest {
     }
 
     @Test
+    void loginWithRememberMeStoresSevenDaySession() throws Exception {
+        String username = createUser("remembered");
+
+        MvcResult result = mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + username + "\",\"password\":\"correct-password\",\"rememberMe\":true}"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String token = objectMapper.readTree(result.getResponse().getContentAsString()).path("token").asText();
+        Timestamp expiresAt = jdbc.queryForObject(
+            "SELECT expiresAt FROM \"Session\" WHERE token = ?", Timestamp.class, token);
+        assertNotNull(expiresAt);
+        LocalDateTime expected = clock.now().plusDays(AuthService.REMEMBER_ME_VALIDITY_DAYS);
+        assertTrue(Duration.between(expiresAt.toLocalDateTime(), expected).abs().toMinutes() <= 2,
+            "rememberMe expiresAt should be ~ issue time + 7d, got " + expiresAt + " expected ~ " + expected);
+    }
+
+    @Test
     void loginWithUnknownUsernameReturnsUserNotFoundCode() throws Exception {
         MvcResult result = mvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
