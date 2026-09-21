@@ -1,17 +1,17 @@
 # Task Splitting
 
-Node.js + Express + Prisma backend and React + TypeScript frontend development environment.
+Spring Boot + SQLite backend and React + TypeScript frontend development environment.
 
 ## Requirements
 
-- Node.js 20+
+- Java 17+
+- Maven 3.9+
 - npm 10+
 
 ## Start development
 
 ```bash
 npm install
-npm run db:push
 npm run dev
 ```
 
@@ -19,12 +19,11 @@ npm run dev
 - Backend: http://localhost:4000
 - Health check: http://localhost:4000/api/health
 
-The SQLite database is created at `server/prisma/dev.db` by `npm run db:push`.
+The existing SQLite database remains at `server/prisma/dev.db` and is used directly by Spring Boot.
 
 ## Useful commands
 
 ```bash
 npm run typecheck
 npm run build
-npm run db:studio
 ```

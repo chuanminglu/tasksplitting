@@ -1,0 +1,16 @@
+server:
+  port: 4000
+spring:
+  application:
+    name: tasksplitting-api
+  datasource:
+    url: jdbc:sqlite:server/prisma/dev.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 5
+  sql:
+    init:
+      mode: always
+app:
+  feature:
+    login-auth-enabled: false
