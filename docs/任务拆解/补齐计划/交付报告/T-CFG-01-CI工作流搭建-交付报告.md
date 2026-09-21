@@ -56,6 +56,6 @@ $ npm run typecheck          # 仓库根，等价 npm run typecheck --workspace 
 
 ## 七、交付物与后续事项
 
-- 分支：`t-cfg-01-ci-workflow`；提交：`.github/workflows/ci.yml` + 本报告
-- **CI 是否已在 GitHub 实际跑绿：尚未。** 本任务只做到本地两条命令验证 + YAML 语法正确。建议本 PR 合并后，到 GitHub Actions 页面确认 `CI` workflow 实际跑绿（这是唯一需要人工补充验证的任务，见规格备注）。
+- 分支：`t-cfg-01-ci-workflow`；提交：`.github/workflows/ci.yml` + 本报告 + 总执行计划跟踪表
+- **CI 已在 GitHub Actions 实际跑绿（已确认）。** CI run `35589570210`（PR #25 触发）`conclusion=success`：`server mvn test` 与 `client typecheck` 两 job 均 `success`，与本地验证一致。规格备注要求的人工补充验证已完成。
 - 待办：阶段 3 下一任务 **T-CFG-02**。
