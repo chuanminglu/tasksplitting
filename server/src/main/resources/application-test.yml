@@ -1,0 +1,7 @@
+# Test profile: independent SQLite database path.
+# Activate with @ActiveProfiles("test") in new test classes.
+# Existing test classes are NOT affected — they continue using their
+# own @SpringBootTest(properties) database overrides.
+spring:
+  datasource:
+    url: jdbc:sqlite:target/test-data/application-test.db
