@@ -37,6 +37,11 @@ public class PasswordResetCodeRepository {
         ).stream().findFirst();
     }
 
+    /** T00202（AC-2）：标记验证码已使用（used = TRUE）。 */
+    public void markUsed(int id) {
+        jdbcTemplate.update("UPDATE \"PasswordResetCode\" SET used = TRUE WHERE id = ?", id);
+    }
+
     private PasswordResetCode toCode(ResultSet rs) throws SQLException {
         return new PasswordResetCode(
             rs.getInt("id"),

@@ -67,6 +67,11 @@ public class UserRepository {
             userId);
     }
 
+    /** T00202（AC-2）：更新用户密码哈希（忘记密码-设置新密码）。 */
+    public void updatePasswordHash(int userId, String passwordHash) {
+        jdbcTemplate.update("UPDATE \"User\" SET passwordHash = ? WHERE id = ?", passwordHash, userId);
+    }
+
     private static LocalDateTime toLocalDateTime(Timestamp timestamp) {
         return timestamp == null ? null : timestamp.toLocalDateTime();
     }

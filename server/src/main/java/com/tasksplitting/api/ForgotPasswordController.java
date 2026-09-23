@@ -1,7 +1,9 @@
 package com.tasksplitting.api;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,5 +35,24 @@ public class ForgotPasswordController {
             forgotPasswordService.requestReset(request.email());
         }
         return ResponseEntity.ok(Map.of("message", RESET_MESSAGE));
+    }
+
+    /**
+     * T00202（AC-2）：验证码校验 + 设置新密码。
+     * 成功 → 200 + 成功文案；验证码无效/已用/已过期 → 401 + error 体（{@link AuthException}）。
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @RequestBody(required = false) ResetPasswordRequest request) {
+        if (request != null) {
+            forgotPasswordService.resetPassword(request.email(), request.code(), request.newPassword());
+        }
+        return ResponseEntity.ok(Map.of("message", "密码已重置成功，请使用新密码登录"));
+    }
+
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthException(AuthException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+            "error", Map.of("code", exception.getCode(), "message", exception.getMessage())));
     }
 }
