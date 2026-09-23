@@ -50,11 +50,33 @@ public class AvatarController {
         this.userRepository = userRepository;
     }
 
+    /** 允许上传的图片 Content-Type（T00303 AC-3：仅 jpg/png）。 */
+    private static final java.util.Set<String> ALLOWED_CONTENT_TYPES =
+            java.util.Set.of("image/jpeg", "image/png");
+
+    /** 上传大小上限：2MB（T00303 AC-3）。 */
+    private static final long MAX_SIZE_BYTES = 2L * 1024 * 1024;
+
     @PostMapping
     public ResponseEntity<?> upload(@RequestAttribute("userId") int userId,
                                     @RequestParam("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "file is required"));
+        }
+
+        // T00303 (AC-3) 格式校验：仅依据声明的 contentType 判断，不做魔数字节嗅探。
+        String contentType = file.getContentType() == null
+                ? ""
+                : file.getContentType().toLowerCase(Locale.ROOT);
+        if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", Map.of("code", "UNSUPPORTED_FORMAT", "message", "仅支持jpg/png格式")));
+        }
+
+        // T00303 (AC-3) 大小校验：超过 2MB 拒绝。
+        if (file.getSize() > MAX_SIZE_BYTES) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", Map.of("code", "FILE_TOO_LARGE", "message", "文件大小不能超过2MB")));
         }
 
         String extension = extractExtension(file.getOriginalFilename());
