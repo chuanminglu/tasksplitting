@@ -17,20 +17,34 @@ public class UserRepository {
     public UserRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         ensureLoginColumns();
+        ensureEmailColumn();
     }
 
     public Optional<User> findByUsername(String username) {
         return jdbcTemplate.query(
-            "SELECT id, username, passwordHash, \"createdAt\", failedLoginAttempts, lockedUntil FROM \"User\" WHERE username = ?",
-            (rs, rowNum) -> new User(
-                rs.getInt("id"),
-                rs.getString("username"),
-                rs.getString("passwordHash"),
-                toLocalDateTime(rs.getTimestamp("createdAt")),
-                rs.getInt("failedLoginAttempts"),
-                toLocalDateTime(rs.getTimestamp("lockedUntil"))),
+            "SELECT id, username, passwordHash, email, \"createdAt\", failedLoginAttempts, lockedUntil FROM \"User\" WHERE username = ?",
+            (rs, rowNum) -> toUser(rs),
             username
         ).stream().findFirst();
+    }
+
+    public Optional<User> findByEmail(String email) {
+        return jdbcTemplate.query(
+            "SELECT id, username, passwordHash, email, \"createdAt\", failedLoginAttempts, lockedUntil FROM \"User\" WHERE email = ?",
+            (rs, rowNum) -> toUser(rs),
+            email
+        ).stream().findFirst();
+    }
+
+    private User toUser(java.sql.ResultSet rs) throws java.sql.SQLException {
+        return new User(
+            rs.getInt("id"),
+            rs.getString("username"),
+            rs.getString("passwordHash"),
+            rs.getString("email"),
+            toLocalDateTime(rs.getTimestamp("createdAt")),
+            rs.getInt("failedLoginAttempts"),
+            toLocalDateTime(rs.getTimestamp("lockedUntil")));
     }
 
     public User create(String username, String passwordHash) {
@@ -66,6 +80,20 @@ public class UserRepository {
         }
         if (!columns.contains("lockedUntil")) {
             jdbcTemplate.execute("ALTER TABLE \"User\" ADD COLUMN lockedUntil DATETIME");
+        }
+    }
+
+    /**
+     * T00201: email 列迁移（找回密码按邮箱定位用户）。SQLite 不支持
+     * "ADD COLUMN IF NOT EXISTS"，沿用 T00103 的 PRAGMA 探测 + 条件 ALTER 模式。
+     * schema.sql 每次启动都重放（sql.init.mode=always），因此 ALTER 不能放 schema.sql。
+     */
+    private void ensureEmailColumn() {
+        Set<String> columns = new HashSet<>(jdbcTemplate.query(
+            "PRAGMA table_info(\"User\")",
+            (rs, rowNum) -> rs.getString("name")));
+        if (!columns.contains("email")) {
+            jdbcTemplate.execute("ALTER TABLE \"User\" ADD COLUMN email TEXT");
         }
     }
 
