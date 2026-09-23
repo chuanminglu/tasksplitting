@@ -43,6 +43,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             response.getWriter().write("{\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"invalid or expired session token\"}}");
             return false;
         }
+        // T00301: expose the resolved user to protected controllers (e.g. AvatarController)
+        request.setAttribute("userId", session.userId());
         return true;
     }
 

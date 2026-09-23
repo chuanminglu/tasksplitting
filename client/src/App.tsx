@@ -45,13 +45,33 @@ const REMEMBERED_USERNAME_KEY = 'tasksplitting-remembered-username';
  */
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
+/**
+ * T00301: neutral default avatar shown when the user has not uploaded one.
+ * A small inline SVG data-URI keeps the placeholder dependency-free.
+ */
+const avatarPlaceholder =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+      '<circle cx="32" cy="32" r="32" fill="#cdd6d1"/>' +
+      '<circle cx="32" cy="26" r="11" fill="#8a9a92"/>' +
+      '<path d="M12 54c3-11 12-16 20-16s17 5 20 16z" fill="#8a9a92"/>' +
+    '</svg>',
+  );
+
 function readStoredTheme(): Theme {
   return window.localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
 }
 
+type View = 'workboard' | 'profile';
+
 export default function App() {
   const [token, setToken] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(readStoredTheme);
+  // T00301: top-level avatar state so the workboard (T00302) can reflect the
+  // freshly-uploaded URL without any extra API call.
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [view, setView] = useState<View>('workboard');
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -70,8 +90,20 @@ export default function App() {
       </button>
       {!token ? (
         <LoginForm onLogin={setToken} />
+      ) : view === 'profile' ? (
+        <ProfileView
+          token={token}
+          avatarUrl={avatarUrl}
+          onAvatarUploaded={setAvatarUrl}
+          onBack={() => setView('workboard')}
+        />
       ) : (
-        <TodoBoard token={token} onLogout={() => setToken(null)} />
+        <TodoBoard
+          token={token}
+          onLogout={() => setToken(null)}
+          avatarUrl={avatarUrl}
+          onOpenProfile={() => setView('profile')}
+        />
       )}
     </>
   );
@@ -135,7 +167,92 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   );
 }
 
-function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void }) {
+type ProfileViewProps = {
+  token: string;
+  avatarUrl: string | null;
+  onAvatarUploaded: (url: string) => void;
+  onBack: () => void;
+};
+
+function ProfileView({ token, avatarUrl, onAvatarUploaded, onBack }: ProfileViewProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload() {
+    if (!file || uploading) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const response = await fetch(`${API_BASE}/api/avatars`, {
+        method: 'POST',
+        // Do NOT set Content-Type manually: the browser sets the multipart
+        // boundary automatically.
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (response.status === 401) {
+        onBack();
+        return;
+      }
+      if (response.ok) {
+        const data = (await response.json()) as { url: string };
+        onAvatarUploaded(data.url);
+        setFile(null);
+        onBack();
+      } else {
+        const message = (await response.json().catch(() => null)) as { message?: string } | null;
+        setError(message?.message ?? `上传失败（${response.status}）`);
+      }
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <main className="shell">
+      <p className="eyebrow">TASK SPLITTING</p>
+      <h1>个人中心</h1>
+      <p className="intro">上传或更新你的头像。</p>
+      <div className="profile-view">
+        <img
+          className="avatar-preview"
+          src={avatarUrl ?? avatarPlaceholder}
+          alt="当前头像"
+        />
+        <div className="profile-upload-row">
+          <input
+            type="file"
+            aria-label="选择头像文件"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+          <button type="button" onClick={upload} disabled={!file || uploading}>
+            {uploading ? '上传中…' : '上传头像'}
+          </button>
+        </div>
+        <button type="button" className="profile-back" onClick={onBack}>返回工作台</button>
+      </div>
+      {error ? <p className="muted" role="alert">{error}</p> : null}
+    </main>
+  );
+}
+
+function TodoBoard({
+  token,
+  onLogout,
+  avatarUrl,
+  onOpenProfile,
+}: {
+  token: string;
+  onLogout: () => void;
+  avatarUrl: string | null;
+  onOpenProfile: () => void;
+}) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
@@ -181,6 +298,16 @@ function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void })
       <p className="eyebrow">TASK SPLITTING</p>
       <h1>开发环境已就绪</h1>
       <p className="intro">React 前端正在通过 Vite 代理连接 Express + Prisma API。</p>
+      <div className="workboard-actions">
+        <button type="button" className="open-profile" onClick={onOpenProfile}>
+          个人中心
+        </button>
+        <img
+          className="workboard-avatar"
+          src={avatarUrl ?? avatarPlaceholder}
+          alt="我的头像"
+        />
+      </div>
       <form onSubmit={addTodo} className="todo-form">
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="添加一个任务" />
         <button type="submit">添加</button>

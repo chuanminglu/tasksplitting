@@ -50,3 +50,12 @@ button { border: 0; border-radius: 8px; padding: 0 20px; color: var(--color-on-a
 .todo-list { margin-top: 22px; display: grid; gap: 8px; }
 .todo { display: flex; justify-content: space-between; gap: 16px; padding: 15px 16px; border: 1px solid var(--color-border-soft); border-radius: 8px; background: var(--color-surface); }
 .todo small, .muted { color: var(--color-muted-strong); }
+
+/* T00301: avatar / profile view */
+.workboard-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.workboard-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--color-border); }
+.open-profile { padding: 8px 16px; }
+.profile-view { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.avatar-preview { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-border); }
+.profile-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.profile-back { padding: 8px 16px; background: var(--color-muted); }

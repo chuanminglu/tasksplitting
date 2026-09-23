@@ -19,6 +19,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(authInterceptor).addPathPatterns("/api/todos/**");
+        // T00301: the avatar upload endpoint (POST /api/avatars) also requires a valid
+        // bearer session. GET /api/avatars/** stays public — it only serves already-
+        // uploaded bytes and the UUID-based filename is not guessable.
+        registry.addInterceptor(authInterceptor).addPathPatterns("/api/todos/**", "/api/avatars");
     }
 }
