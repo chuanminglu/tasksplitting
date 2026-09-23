@@ -18,11 +18,12 @@ public class UserRepository {
         this.jdbcTemplate = jdbcTemplate;
         ensureLoginColumns();
         ensureEmailColumn();
+        ensureAvatarColumn();
     }
 
     public Optional<User> findByUsername(String username) {
         return jdbcTemplate.query(
-            "SELECT id, username, passwordHash, email, \"createdAt\", failedLoginAttempts, lockedUntil FROM \"User\" WHERE username = ?",
+            "SELECT id, username, passwordHash, email, \"createdAt\", failedLoginAttempts, lockedUntil, avatarUrl FROM \"User\" WHERE username = ?",
             (rs, rowNum) -> toUser(rs),
             username
         ).stream().findFirst();
@@ -30,9 +31,17 @@ public class UserRepository {
 
     public Optional<User> findByEmail(String email) {
         return jdbcTemplate.query(
-            "SELECT id, username, passwordHash, email, \"createdAt\", failedLoginAttempts, lockedUntil FROM \"User\" WHERE email = ?",
+            "SELECT id, username, passwordHash, email, \"createdAt\", failedLoginAttempts, lockedUntil, avatarUrl FROM \"User\" WHERE email = ?",
             (rs, rowNum) -> toUser(rs),
             email
+        ).stream().findFirst();
+    }
+
+    public Optional<User> findById(int id) {
+        return jdbcTemplate.query(
+            "SELECT id, username, passwordHash, email, \"createdAt\", failedLoginAttempts, lockedUntil, avatarUrl FROM \"User\" WHERE id = ?",
+            (rs, rowNum) -> toUser(rs),
+            id
         ).stream().findFirst();
     }
 
@@ -44,7 +53,8 @@ public class UserRepository {
             rs.getString("email"),
             toLocalDateTime(rs.getTimestamp("createdAt")),
             rs.getInt("failedLoginAttempts"),
-            toLocalDateTime(rs.getTimestamp("lockedUntil")));
+            toLocalDateTime(rs.getTimestamp("lockedUntil")),
+            rs.getString("avatarUrl"));
     }
 
     public User create(String username, String passwordHash) {
@@ -72,6 +82,14 @@ public class UserRepository {
         jdbcTemplate.update("UPDATE \"User\" SET passwordHash = ? WHERE id = ?", passwordHash, userId);
     }
 
+    /**
+     * T00301（AC-1）：更新用户的头像 URL（上传新头像后写入 {@code User.avatarUrl}）。
+     * 传入 {@code null} 可清除当前头像。
+     */
+    public void updateAvatarUrl(int userId, String avatarUrl) {
+        jdbcTemplate.update("UPDATE \"User\" SET avatarUrl = ? WHERE id = ?", avatarUrl, userId);
+    }
+
     private static LocalDateTime toLocalDateTime(Timestamp timestamp) {
         return timestamp == null ? null : timestamp.toLocalDateTime();
     }
@@ -85,6 +103,20 @@ public class UserRepository {
         }
         if (!columns.contains("lockedUntil")) {
             jdbcTemplate.execute("ALTER TABLE \"User\" ADD COLUMN lockedUntil DATETIME");
+        }
+    }
+
+    /**
+     * T00301: avatarUrl 列迁移（头像上传写入 {@code User.avatarUrl}）。
+     * 沿用 T00201 email 列的 PRAGMA 探测 + 条件 ALTER 模式，
+     * 因为 schema.sql 每次启动都重放（{@code sql.init.mode=always}），裸 ALTER 会失败。
+     */
+    private void ensureAvatarColumn() {
+        Set<String> columns = new HashSet<>(jdbcTemplate.query(
+            "PRAGMA table_info(\"User\")",
+            (rs, rowNum) -> rs.getString("name")));
+        if (!columns.contains("avatarUrl")) {
+            jdbcTemplate.execute("ALTER TABLE \"User\" ADD COLUMN avatarUrl TEXT");
         }
     }
 

@@ -6,3 +6,4 @@ dist/
 *.db-journal
 server/prisma/dev.db
 target/
+server/uploads/

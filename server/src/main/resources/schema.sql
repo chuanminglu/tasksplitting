@@ -44,3 +44,7 @@ CREATE TABLE IF NOT EXISTS "PasswordResetCode" (
 -- 因此 email 列沿用 T00103 的 PRAGMA table_info 探测 + 条件 ALTER 模式，
 -- 由 UserRepository.ensureEmailColumn() 在启动时按条件执行。
 
+-- 同理：User.avatarUrl 字段（T00301 头像上传）的迁移也不在此文件中执行，
+-- 由 UserRepository.ensureAvatarColumn() 按同样的 PRAGMA 探测 + 条件 ALTER 模式
+-- 在启动时执行。
+
