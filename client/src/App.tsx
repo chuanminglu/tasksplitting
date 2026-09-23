@@ -37,6 +37,14 @@ type Theme = 'light' | 'dark';
 const THEME_STORAGE_KEY = 'tasksplitting-theme';
 const REMEMBERED_USERNAME_KEY = 'tasksplitting-remembered-username';
 
+/**
+ * Base URL for backend API calls. When left empty (default), requests use
+ * relative paths and are routed through the Vite dev-server proxy to port
+ * 4000; set VITE_API_BASE_URL to a full origin (e.g. https://api.example.com)
+ * to point the frontend at a different deployment.
+ */
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
 function readStoredTheme(): Theme {
   return window.localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
 }
@@ -82,7 +90,7 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
     setError(null);
     setSubmitting(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, rememberMe }),
@@ -142,7 +150,7 @@ function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void })
   const authHeaders = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    fetch('/api/todos', { headers: authHeaders })
+    fetch(`${API_BASE}/api/todos`, { headers: authHeaders })
       .then((response) => {
         if (response.status === 401) { onLogout(); return [] as Todo[]; }
         return response.json() as Promise<Todo[]>;
@@ -155,7 +163,7 @@ function TodoBoard({ token, onLogout }: { token: string; onLogout: () => void })
   async function addTodo(event: FormEvent) {
     event.preventDefault();
     if (!title.trim()) return;
-    const response = await fetch('/api/todos', {
+    const response = await fetch(`${API_BASE}/api/todos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ title }),
