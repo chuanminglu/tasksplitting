@@ -24,15 +24,18 @@ public class ForgotPasswordService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final UserRepository userRepository;
     private final PasswordResetCodeRepository codeRepository;
+    private final SessionRepository sessionRepository;
     private final EmailSender emailSender;
     private final Clock clock;
 
     public ForgotPasswordService(UserRepository userRepository,
                                  PasswordResetCodeRepository codeRepository,
+                                 SessionRepository sessionRepository,
                                  EmailSender emailSender,
                                  Clock clock) {
         this.userRepository = userRepository;
         this.codeRepository = codeRepository;
+        this.sessionRepository = sessionRepository;
         this.emailSender = emailSender;
         this.clock = clock;
     }
@@ -83,6 +86,10 @@ public class ForgotPasswordService {
         String newHash = passwordEncoder.encode(newPassword);
         userRepository.updatePasswordHash(user.id(), newHash);
         codeRepository.markUsed(record.id());
+        // T00203 (AC-3): after a successful password reset, invalidate ALL of this user's
+        // pre-existing sessions so their old bearer tokens can no longer be used. Strictly
+        // scoped to this user's id; other users' sessions are untouched.
+        sessionRepository.deleteAllForUser(user.id());
         log.info("password reset completed for email={}", normalizedEmail);
     }
 }

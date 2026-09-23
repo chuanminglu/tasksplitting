@@ -43,6 +43,16 @@ public class SessionRepository {
         ).stream().findFirst();
     }
 
+    /**
+     * Delete all sessions belonging to a single user. Used after a password reset so that
+     * every pre-reset session for that user is immediately invalidated (AC-3).
+     *
+     * @param userId the id of the user whose sessions should be invalidated
+     */
+    public void deleteAllForUser(int userId) {
+        jdbcTemplate.update("DELETE FROM \"Session\" WHERE userId = ?", userId);
+    }
+
     /** A session row read from the database. */
     public record StoredSession(String token, int userId, LocalDateTime expiresAt) {}
 }
