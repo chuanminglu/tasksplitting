@@ -125,6 +125,64 @@ class AvatarUploadIntegrationTest {
     }
 
     @Test
+    void uploadUnsupportedFormatReturns400AndDoesNotPersist() throws Exception {
+        String username = "avatar-badfmt-" + System.nanoTime();
+        User user = users.create(username, encoder.encode("correct-password"));
+        String token = loginAndGetToken(username);
+
+        // 非 jpg/png 的声明 contentType → UNSUPPORTED_FORMAT，不保存、不更新 avatarUrl。
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "anim.gif", "image/gif", "gif-bytes".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        mvc.perform(multipart("/api/avatars").file(file)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("UNSUPPORTED_FORMAT"))
+            .andExpect(jsonPath("$.error.message").value("仅支持jpg/png格式"));
+
+        // avatarUrl 未被更新
+        User reloaded = users.findById(user.id())
+                .orElseThrow(() -> new AssertionError("user missing"));
+        org.junit.jupiter.api.Assertions.assertNull(reloaded.avatarUrl(), "avatarUrl must not change on unsupported format");
+    }
+
+    @Test
+    void uploadOversizedFileReturns400AndDoesNotPersist() throws Exception {
+        String username = "avatar-large-" + System.nanoTime();
+        User user = users.create(username, encoder.encode("correct-password"));
+        String token = loginAndGetToken(username);
+
+        // 合规格式（image/png）但超过 2MB → FILE_TOO_LARGE，不保存、不更新 avatarUrl。
+        byte[] big = new byte[2 * 1024 * 1024 + 1];
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "big.png", "image/png", big);
+        mvc.perform(multipart("/api/avatars").file(file)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("FILE_TOO_LARGE"))
+            .andExpect(jsonPath("$.error.message").value("文件大小不能超过2MB"));
+
+        User reloaded = users.findById(user.id())
+                .orElseThrow(() -> new AssertionError("user missing"));
+        org.junit.jupiter.api.Assertions.assertNull(reloaded.avatarUrl(), "avatarUrl must not change on oversized file");
+    }
+
+    @Test
+    void uploadSupportsBoundarySizeExactlyTwoMegaBytes() throws Exception {
+        String username = "avatar-edge-" + System.nanoTime();
+        users.create(username, encoder.encode("correct-password"));
+        String token = loginAndGetToken(username);
+
+        // 恰好 2MB 属于"不超过 2MB"，应放行并成功落盘。
+        byte[] exactly = new byte[2 * 1024 * 1024];
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "edge.png", "image/png", exactly);
+        mvc.perform(multipart("/api/avatars").file(file)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.url").isString());
+    }
+
+    @Test
     void downloadReturnsUploadedBytesWithInferredContentType() throws Exception {
         String username = "avatar-dl-" + System.nanoTime();
         users.create(username, encoder.encode("correct-password"));
